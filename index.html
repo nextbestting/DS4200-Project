@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Linking Corporate Fundamentals to Market Behavior</title>
+  <meta name="description" content="DS4200 project connecting SEC EDGAR filings with Yahoo Finance market behavior using interactive D3 visualizations (2019–2025)." />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script defer src="js/dashboard.js"></script>
+  <script defer src="js/timeseries.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+
+<body>
+  <div class="nav">
+    <div class="container">
+      <div class="pill"><b>DS4200</b> · Interactive Visualization</div>
+      <div class="navlinks">
+        <a href="#overview">Overview</a>
+        <a href="#interactives">Interactives</a>
+        <a href="#statics">Static Visuals</a>
+        <a href="#conclusion">Conclusion</a>
+      </div>
+    </div>
+  </div>
+
+  <header class="hero container" id="overview">
+    <div class="hero-top">
+      <div>
+        <h1>Linking Corporate Fundamentals to Market Behavior</h1>
+        <p class="sub">
+          We connect <b>SEC EDGAR filings</b> (10‑K / 10‑Q / 8‑K) with <b>Yahoo Finance</b> price + volume (2019–2025)
+          to understand how disclosed company fundamentals relate to real market reactions.
+        </p>
+      </div>
+      <div class="pills">
+        <div class="pill">Data: EDGAR + Yahoo Finance</div>
+        <div class="pill">Years: 2019–2025</div>
+        <div class="pill">Tools: Python + D3 v7</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Motivation (why this is interesting)</h2>
+      <p class="kicker">
+        Stock prices move on information — but not all information is equal. EDGAR filings are official, regulated disclosures that
+        tell investors what a company is actually doing (earnings, risk factors, major events). Markets react through price changes,
+        volume spikes, and increased volatility. Our goal is to visualize that connection: <i>when fundamentals get disclosed, how does
+        market behavior shift?</i>
+      </p>
+      <div class="grid">
+        <div>
+          <h3>Data used</h3>
+          <p class="kicker">
+            <b>Yahoo Finance daily market data</b> per company: adjusted close, trading volume (2019–2025).<br/>
+            <b>SEC EDGAR filings</b>: filing dates and form types (10‑K / 10‑Q / 8‑K). (We support filing markers on the timeline if the dataset is present.)
+          </p>
+          <p class="small">
+            Files used by this site live in <code>/data</code>:
+            <code>companies_summary.csv</code> (one row per company),
+            <code>prices_long.csv</code> (daily rows),
+            and optionally <code>filings.csv</code>.
+          </p>
+        </div>
+        <div class="howto">
+          <div style="font-weight:750">How to use this page (interaction instructions)</div>
+          <ul>
+            <li><b>Hover</b> a dot to see company details (return, volatility, volume).</li>
+            <li><b>Filter</b> by sector or pick a company from the dropdown.</li>
+            <li><b>Click</b> a company dot to select it and update the time chart.</li>
+            <li><b>Brush</b> the mini timeline or use the <b>year slider</b> to zoom into a window.</li>
+          </ul>
+          <div class="small">Interaction types used: hover tooltip, dropdown filtering, click-to-select (linked views), brush + slider.</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" id="interactives">
+    <div class="card">
+      <h2>Interactive 1 — Risk vs Return Dashboard (Company Overview)</h2>
+      <p class="kicker">
+        Each point is a company. We use position encoding for the two most important quantitative variables:
+        <b>x = volatility</b> (risk) and <b>y = average daily return</b> (reward). Color represents sector so users can spot clustering patterns.
+      </p>
+
+      <div class="controls">
+        <div class="controls-left">
+          <label>
+            Sector
+            <select id="sectorFilter"></select>
+          </label>
+          <label>
+            Company
+            <select id="companySelect"></select>
+          </label>
+          <button class="btn" id="resetSelection">Reset</button>
+        </div>
+        <div class="badge" id="selectionBadge">
+          Selected: <b>None</b>
+        </div>
+      </div>
+
+      <div id="dashboard" class="chart">
+        <div class="loading">Loading dashboard…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Interactive 2 — Price + Volume Over Time (2019–2025)</h2>
+      <p class="kicker">
+        This chart updates when you select a company from the dashboard. It shows price (line) and volume (area).
+        Use the brush to zoom into a time range, or use the year slider to jump to a year window.
+        If filing data is included, filing dates appear as subtle markers on the timeline.
+      </p>
+
+      <div class="controls">
+        <div class="controls-left">
+          <label>
+            Year
+            <input id="yearSlider" type="range" min="2019" max="2025" step="1" value="2019" />
+            <span id="yearLabel">2019</span>
+          </label>
+          <button class="btn" id="showAll">Show All</button>
+          <label style="min-width:180px">
+            Display
+            <select id="priceMode">
+              <option value="raw" selected>Raw Price</option>
+              <option value="norm">Normalized (start=100)</option>
+            </select>
+          </label>
+        </div>
+        <div class="badge" id="rangeBadge">
+          Range: <b>Full</b>
+        </div>
+      </div>
+
+      <div id="timeseries" class="chart">
+        <div class="loading">Select a company to view the timeline…</div>
+      </div>
+
+      <hr class="sep" />
+      <div class="small">
+        <b>Optional EDGAR markers:</b> If you add <code>data/filings.csv</code> with columns
+        <code>ticker,filed_date,form,title,url</code>, filing markers will appear on the chart automatically.
+      </div>
+    </div>
+
+    <div class="card" id="statics">
+      <h2>Static Visualizations (Altair)</h2>
+      <p class="kicker">
+        These static charts provide supporting context: broad sector movement, baseline return vs volatility, and correlation structure.
+      </p>
+
+      <div class="split">
+        <div class="figure">
+          <h3>Normalized Sector Price Indexes Over Time</h3>
+          <iframe src="figures/fig_altair_normalized_prices.html" height="420" loading="lazy"></iframe>
+        </div>
+
+        <div class="figure">
+          <h3>Average Return vs Volatility by Company</h3>
+          <iframe src="figures/fig_altair_return_volatility.html" height="460" loading="lazy"></iframe>
+        </div>
+
+        <div class="figure">
+          <h3>Sector Return Correlations</h3>
+          <iframe src="figures/fig_altair_correlation_heatmap.html" height="420" loading="lazy"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="conclusion">
+      <h2>Conclusion + Future Work</h2>
+      <p class="kicker">
+        <b>Main takeaway:</b> The dashboard helps quickly compare risk/reward across companies and sectors, while the timeline reveals when
+        a company experiences abnormal activity (price swings or volume spikes). Together, the views support an “overview → drill-down”
+        workflow that matches how analysts explore markets.
+      </p>
+      <p class="kicker">
+        <b>Future work (realistic upgrades):</b> (1) Add abnormal return/volume event windows around filing dates, (2) extract a few key
+        fundamentals (revenue, net income, guidance) and test whether changes predict reactions, and (3) scale up to more tickers while
+        keeping the UI fast using aggregation.
+      </p>
+      <div class="small">
+        Rubric coverage: clear motivation + data description, proper titles/labels, appropriate encodings (position for key quantitative vars; color for categorical sector),
+        and multiple meaningful interactions (tooltip, filter, click-linked views, brush/slider).
+      </div>
+    </div>
+
+    <div class="footer">
+      Built for DS4200 · Interactive Information Visualization · D3 v7 + Python.
+    </div>
+  </main>
+
+  <div id="tooltip" class="tooltip"></div>
+</body>
+</html>
